@@ -2,3 +2,5 @@
 *.obj
 *.log
 _*.*
+system.dsk
+rt11.exe
