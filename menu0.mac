@@ -1,0 +1,206 @@
+	;
+GOTIT:	CALL CLSCR
+
+	; unpack picture
+	MOV #TITDAT,R0
+	MOV #VSCR+3400,R1
+	CALL UNPK
+
+	; draw menu
+	mov	#C_MENUY*C_SCRWID+18.+VSCR, R5
+	mov	#MsgMenu, R0
+	call	PrintText
+	call	PrintArenaNum
+
+	; clear keys
+	call	ClearKeys
+
+01$:	; keypress processing
+	call	WaitKeypress
+	tst	Key3			; 3 - info
+	beq	10$
+	clr	Key3
+	clr	Key1			; (!) damn that, 1 and 3 in Neon are sharing key bits
+	br	OutInfo
+10$:	tst	Key1			; 1 - start
+	beq	20$
+	clr	Key1
+	clr	Key3
+	call	ClScr
+	call	Go
+	br	GotIt
+20$:	tst	Key2			; 2 - inc arena
+	beq	30$
+	clr	Key2
+	inc	Amap
+	cmp	Amap, #5
+	blo	22$
+	clr	Amap
+22$:	call	PrintArenaNum
+	br	01$
+30$:	tst	Key0			; 0 - exit
+	beq	01$
+	return
+
+; info out
+OutInfo:
+	call	ClScr
+	mov	#60.*C_SCRWID+06.+VSCR, R5
+	mov	#MsgInfo, R0
+	call	PrintText
+	call	WaitKeypress
+	call	ClScr
+	mov	#70.*C_SCRWID+12.+VSCR, R5
+	mov	#MsgCtrl, R0
+	call	PrintText
+	call	WaitKeypress
+	call	ClScr
+	mov	#70.*C_SCRWID+02.+VSCR, R5
+	mov	#MsgAuth, R0
+	call	PrintText
+	call	WaitKeypress
+	jmp	GotIt
+
+
+; prints arena number in menu (from Amap)
+PrintArenaNum:
+	movb	Amap, R0
+	add	#'1, R0
+	movb	R0, MsgNumber+1
+	mov	#C_MENUY+14.*C_SCRWID+36.+VSCR, R5
+	mov	#MsgNumber, R0
+	call	PrintStr
+	return
+
+
+MsgNumber:
+	.asciz	<2>"1"
+
+MsgMenu:
+	.asciz	<2>"1"<1>": "<3>"START GAME"
+	.asciz	<2>"2"<1>": "<3>"ARENA "
+	.asciz	<2>"3"<1>": "<3>"INFORMATION"
+	.asciz	<3>"0"<1>": "<3>"EXIT TO DOS"
+	.byte	-1
+
+MsgInfo:
+	.asciz	<3>"LEGEND"
+	.byte	0
+	.asciz	<2>"  MONSTERS FROM THE PAST"
+	.asciz	<2>"  FOUND MAGIC PORTAL ON"
+	.asciz	<2>"  BK 0010 HOME COMPUTERS?"
+	.asciz	<2>"  YOU ARE OUR LAST HOPE?"
+	.asciz	<2>"  FIGHT WITH THIS EVIL"
+	.asciz	<2>"  AND MAY THE FORCE BE"
+	.asciz	<2>"  WITH YOU?"
+	.asciz	<2>"  YOUR TASK IS TO SCORE"
+	.asciz	<2>"  25 POINTS TO WIN?"
+	.byte	-1
+
+MsgCtrl:
+	.asciz	<3>"CONTROLS"
+	.byte	0
+	.asciz	<2>"  ARROWS ; MOVE"
+	.asciz	<2>"   SPACE ; FIRE"
+	.asciz	<2>"   SHIFT ; STRAFE"
+	.asciz	<2>"     TAB ; MAP"
+	.asciz	<2>"    NONE ; PAUSE"
+	.asciz	<2>"     AP2 ; EXIT"
+	.byte	-1
+
+MsgAuth:
+	.asciz	<3>"AUTHORS"
+	.byte	0
+	.asciz	<3>"ENGINE=GAME:"
+	.asciz	<2>"   APRAKSIN DMITRY \ADW2RU]"
+	.asciz	<3>"TITLE PICTURE:"
+	.asciz	<2>"   LASHIN URY \INOART STUDIO]"
+	.asciz	<3>"SUPPORT BK COMMUNITY:"
+	.asciz	<2>"   T<ME>BK0010[11M"
+	.byte	0
+	.asciz	<1>"2024 YEAR"
+	.byte	-1
+
+	.even
+
+
+	; NRV2d	(UCL) FOR BK/PDP
+	; INPUT:
+	; R0 - SOURCE
+	; R1 - DESTINATION
+
+UNPK:	MOV #-1,R4
+	XOR R2,R2
+	BR DCL
+
+NXDC:	MOVB (R0)+,(R1)+
+DCL:	CALL RB
+	BCS NXDC
+
+	MOV #1,R3
+OFN:	ADD R3,R3
+	CALL RB
+	ADC R3
+	CALL RB
+	BCS OFE
+	DEC R3
+	ADD R3,R3
+	CALL RB
+	ADC R3
+	BR OFN
+
+RB:	ADD R2,R2
+	BEQ RBZ
+	RET
+RBZ:	MOVB (R0)+,R2
+	SWAB R2
+	BIC #177,R2
+	BIS #200,R2
+	ADD R2,R2
+	RET
+
+OFE:	SUB #3,R3
+	BCC OF2
+
+	MOV R4,R3
+	XOR R5,R5
+	CALL RB
+	ADC R5
+	BR OF3
+
+OF2:	SWAB R3
+	MOVB (R0)+,R5
+	BIC #177400,R5
+	BIS R5,R3
+	COM R3
+	BEQ BRK
+	XOR R5,R5
+	SEC
+	ROR R3
+	ADC R5
+	MOV R3,R4
+
+OF3:	ADD R5,R5
+	CALL RB
+	ADC R5
+	BNE LF1
+
+	INC R5
+NXLF:	ADD R5,R5
+	CALL RB
+	ADC R5
+	CALL RB
+	BCC NXLF
+	ADD #2,R5
+
+LF1:	CMP R3,#175400
+	ADC R5
+	INC R5
+
+	ADD R1,R3
+NXMV:	MOVB (R3)+,(R1)+
+	SOB R5,NXMV
+	BR DCL
+
+BRK:	RET
+	;

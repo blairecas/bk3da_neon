@@ -1,0 +1,1 @@
+start ..\..\neon\neonbtl /autostart /disk0:..\bk3da_neon\neon.dsk /boot1

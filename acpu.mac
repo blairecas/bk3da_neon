@@ -1,0 +1,370 @@
+	.title	CPU
+	.mcall	.print .exit .setto
+	.enabl	LC, AMA
+	.list	MEB
+
+.macro RET
+	return
+.endm
+
+@include ap16mac.mac
+
+	.asect
+	.=1000
+
+C_SCRWID = 64.
+C_MENUY = 150.
+
+Start:	mov	#1000, SP			; just in case 
+	clr	@#177560			; clear keyboard status? 
+
+	; starting
+	call	GetAllMem
+	call	WindowInit
+	call	KeyboardInit
+	call	VSyncInit
+	call	GStart
+
+	; exiting
+	call	WindowFree
+	call	KeyboardFree
+	call	VSyncFree
+	clr	R0
+	.exit
+
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Utils 
+; //////////////////////////////////////////////////////////////////////////////
+
+; R5 - process dsc
+; return: R1 - num
+GetProcessNum:
+	mov	#PdPtr, R2
+	clr	R1
+10$:	mfhlt	R2
+	inc	R1
+	mov	R0, R2
+	beq	20$
+	add	#P.DSucc, R2
+	cmp	R0, R5
+	bne	10$
+	br	30$
+20$:	clr	R1
+30$:	return 
+
+
+RamTop:		.word	0			; top addr of available RAM
+MsgSettop:	.asciz	"? can't use all memory (.settop failed)"
+MsgNoMemory:	.asciz	"? can't allocate memory up to 120000"
+		.even 
+
+GetAllMem:
+	mov	@#54, R0			; addr of RMON
+	mov	266(R0), R0			; addr of USR? (in case of set USR SWAP)
+	tst	-(R0)				; -2 bytes
+	.setto
+	bcc	10$
+	.print	#MsgSettop
+	.exit
+10$:	mov	R0, RamTop
+	cmp	R0, #120000
+	bhis	20$
+	.print	#MsgNoMemory
+	.exit
+20$:	; and clear it
+	mov	#CpuEnd, R0
+	mov	RamTop, R3
+	sub	R0, R3
+	clrb	(R0)+
+	sob	R3, .-2
+	return  
+
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Graphics
+; //////////////////////////////////////////////////////////////////////////////
+
+BkwScrn:	.word	0
+Bkw100:		.word	0
+VsyCount:	.word	0
+
+VsyncInit:
+	mfhlt	#V.Scrn
+	mov	R0, BkwScrn
+	mov	#7126, R0
+	mthlt	#V.Scrn
+	mov	@#100, Bkw100
+	mov	#VsyncProc, @#100
+	return
+
+
+VSyncFree:
+	mov	Bkw100, @#100
+	MOV	BkwScrn, R0
+	mthlt	#V.Scrn
+	return
+
+
+VsyncProc:
+	inc	VsyCount
+	rti
+
+
+ClScr:	mov	#VSCR, R0
+	mov	#20000, R3
+	clr	(R0)+
+	sob	R3, .-2
+	return
+
+
+WindowInit:
+	mov	#PaletteConfig, @#177530	; create palette
+	nop					; believe it or not, NOP next to a system call is necessary
+	mov	PaletteId, AreaPalette
+	mov	#AreaConfig, @#177530		; create screen buffer (so called "area")
+	nop
+	mov	AreaConfig+2, @#AreaId		; put a screen buffer id to the window description
+	mov	#ViewConfig, @#177530		; create window (so called "view")
+	nop
+	return
+
+
+WindowFree:
+	; free window and palette
+	mov	#2, AreaConfig			; command "free area"
+	mov	#AreaConfig, @#177530		; free area and its view
+	nop
+	mov	#21, PaletteConfig		; command "free palette"
+	mov	#PaletteConfig, @#177530	; free palette
+	nop
+	return
+
+
+; palette configuration
+PaletteConfig:	.word	17			; command "create palette"
+PaletteId:	.byte	1			; 4 colors
+		.byte	0			; palette #		
+PaletteBuf:	; palette words G5 G4 G3ЃR4 R3 R2ЃB4 B3Ѓ - ЃG2 G1 G0ЃR1 R0ЃB2 B1 B0
+		.byte	0,0,0,0,0,0,0,0,0,0,0,0 ; 12. not used bytes (except #0 - border)
+		.byte	0, 3, 340, 34 		; upper bytes of palette words
+		.byte	0,0,0,0,0,0,0,0,0,0,0,0 ; 12. not used bytes (except #0)
+		.byte	0, 7, 340, 30 		; lower bytes of palette words
+
+; screen buffer (so called "area") description
+AreaConfig:	.word	46			; command "create area"
+		.word	VSCR			; address of screen buffer or area id
+		.word	256.			; rows count
+		.word	64.			; bytes count in row
+AreaPalette:	.byte	1			; 4 colors
+		.byte	0			; palette 0
+
+; window (so called "view") description
+ViewConfig:	.word	4			; command "create view"
+ViewId:		.word	0			; view id
+AreaId:		.word	1			; area id
+		.word	0			; vertical content offset
+		.word	0			; horisontal content offset
+		.word	20.			; top position (row)
+		.word	255.+20.		; bottom position (row)
+		.word	5.			; left position (column)
+		.word	20.			; right position (column)
+		.byte	1,2			; scale x,y (0 = *4, 1 = *2, 2 = *1)
+
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Printing
+; //////////////////////////////////////////////////////////////////////////////
+
+@include acpu_font.mac
+
+; print string
+; R0 - text addr
+; R5 - vaddr
+; codes in string - [0..3] - change color
+PriColorsTbl:
+	.word	^B1111111111111111, ^B1010101010101010, ^B0101010101010101, ^B0000000000000000
+
+PrintStr:
+	mov	#C_SCRWID, R2
+	clr	R3			; font mask, default will be red
+10$:	movb	(R0)+, R1
+	beq	99$
+	cmp	R1, #3.			; is it special symbol
+	bhi	20$
+	; change font color mask
+	asl	R1
+	mov	PriColorsTbl(R1), R3
+	br	10$
+20$:	sub	#'0, R1			; relative to '0'
+	bge	30$
+	mov	#16., R1		; any chars below '0' converted to #16 (here its a space)
+30$:	asl	R1			; *16 bytes (character font size)
+	asl	R1
+	asl	R1
+	asl	R1
+	add	#FontCpuData, R1	; R1 = font data
+	.rept	8.
+	mov	(R1)+, R4
+	bic	R3, R4
+	mov	R4, (R5)
+	add	R2, R5
+	.endr
+	sub	#C_SCRWID*8.-2, R5	; advance vaddr
+	br	10$
+99$:	return 
+
+
+PrintStrVarY:
+	mov	(PC)+, R5
+PrintVarY:	.word	0
+	call	PrintStr
+	add	#C_SCRWID*14., PrintVarY
+	return
+
+; prints text strings, one string ends with 0, all text ends with -1
+; R0 - text addr, R5 - vaddr
+PrintText:
+	mov	R5, PrintVarY
+10$:	tstb	(R0)
+	bmi	99$
+	call	PrintStrVarY
+	br	10$
+99$:	return
+
+; BK-0010 ROM font data
+BkRomFont:
+@includebin romfnt.bin
+
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Keyboard
+; //////////////////////////////////////////////////////////////////////////////
+
+KbdSave:	.word	0, 0
+KbdPrio:	.word	0
+KbdProcDsc:	.word	0
+KbdProcNum:	.word	0
+KeysBuffer:	.blkw	8.
+
+KeyCurrent:	.word	0
+KeysBegin:
+KeyAp2:		.word	0, 00., ^B10000000
+Key0:		.word	0, 14., ^B00100000
+Key1:		.word	0, 02., ^B00000010
+Key2:		.word	0, 02., ^B00000100
+Key3:		.word	0, 02., ^B00000001
+KeyUp:		.word	0, 12., ^B00010000
+KeyDown:	.word	0, 10., ^B00010000
+KeyLeft:	.word	0, 08., ^B00100000
+KeyRight:	.word	0, 10., ^B00001000
+KeySpace:	.word	0, 08., ^B00001000
+KeyShift:	.word	0, 08., ^B01000000
+KeyTab:		.word	0, 02., ^B10000000
+KeyEnter:	.word	0, 12., ^B00001000
+KeysEnd:
+
+
+ClearKeys:
+	mov	#KeysBegin, R0
+10$:	clr	(R0)+
+	cmp	(R0)+, (R0)+
+	cmp	R0, #KeysEnd
+	blo	10$
+	return
+
+
+WaitKeypress:
+	clr	KeyCurrent
+	tst	KeyCurrent
+	beq	.-4
+	clr	KeyCurrent
+	return
+
+
+KeyboardInit:
+	; save some keyboard-related values? and set priority?
+	mfhlt	#V.Kbd
+	mov	R0, KbdSave
+	mfhlt	#V.Kbd+2
+	mov	R0, KbdSave+2
+	mov	KbdSave, R1
+	add	#P.Pri, R1
+	mfhlt	R1
+	mov	R0, KbdPrio
+	mov	KbdSave, R0
+	himpri	#-1
+	; new keyboard process
+       	newromp	#KeyboardProc
+	mov	R0, KbdProcDsc
+	mov	R0, R5
+	call	GetProcessNum
+	mov	R1, KbdProcNum 
+	return
+
+
+KeyboardFree:
+	; stop keyboard process
+	mtps	#200
+	clr	R0
+	mthlt	#157700
+	kilproc	KbdProcNum
+	mov	KbdSave+2, R0
+	mthlt	#V.Kbd+2
+	mov	KbdSave, R0
+	mthlt	#V.Kbd
+	bic	#M.Kbd, @#PicMr
+	mov	KbdSave, R0
+	himpri	KbdPrio
+	mtps	#0
+	return
+
+
+KeyboardProc:
+	setpri	#50000				; set priority of process
+	unpvec	#v.kbd				; unprotect keyboard vector
+	clr	R0
+	provec	#v.kbd				; protect keyboard vector
+10$:	waitint	#m.kbd				; wait keyboard inverrupt
+	mov	#120, @#KbdCsr			; ???
+	mov	#KeysBuffer, R4
+	mov	#8., R5
+20$:	mov	@#KbdBuf, (R4)+
+	sob	R5, 20$
+	mov	#302, @#KbdCsr
+	; check matrix
+	clr	KeyCurrent
+	mov	#KeysBegin, R5
+30$:	mov	2(R5), R0
+	add	#KeysBuffer, R0
+	bit	4(R5), (R0)
+	beq	40$
+	inc	(R5)
+	inc	KeyCurrent
+	br	50$
+40$:	clr	(R5)
+50$:	add	#6., R5
+	cmp	R5, #KeysEnd
+	blo	30$
+	; again ...
+	br	10$
+
+
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Dmitry's code is here
+; //////////////////////////////////////////////////////////////////////////////
+	
+@include ar0.mac
+@include lg0.mac
+@include menu0.mac
+@include mn0.mac
+@include tabs0.mac
+@include tit0.mac
+@include util0.mac
+@include wl0.mac
+
+.even
+CpuEnd:
+
+	.end	Start
