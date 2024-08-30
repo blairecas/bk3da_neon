@@ -80,43 +80,43 @@ MsgMenu:
 	.asciz	<2>"1"<1>": "<3>"START GAME"
 	.asciz	<2>"2"<1>": "<3>"ARENA "
 	.asciz	<2>"3"<1>": "<3>"INFORMATION"
-	.asciz	<3>"0"<1>": "<3>"EXIT TO DOS"
+	.asciz	<1>"0"<1>": "<1>"EXIT TO DOS"
 	.byte	-1
 
 MsgInfo:
-	.asciz	<3>"LEGEND"
+	.asciz	<2>"LEGEND"
 	.byte	0
-	.asciz	<2>"  MONSTERS FROM THE PAST"
-	.asciz	<2>"  FOUND MAGIC PORTAL ON"
-	.asciz	<2>"  BK 0010 HOME COMPUTERS?"
-	.asciz	<2>"  YOU ARE OUR LAST HOPE?"
-	.asciz	<2>"  FIGHT WITH THIS EVIL"
-	.asciz	<2>"  AND MAY THE FORCE BE"
-	.asciz	<2>"  WITH YOU?"
-	.asciz	<2>"  YOUR TASK IS TO SCORE"
-	.asciz	<2>"  25 POINTS TO WIN?"
+	.asciz	<3>"  MONSTERS FROM THE PAST"
+	.asciz	<3>"  FOUND MAGIC PORTAL ON"
+	.asciz	<3>"  BK 0010 HOME COMPUTERS?"
+	.asciz	<3>"  YOU ARE OUR LAST HOPE?"
+	.asciz	<3>"  FIGHT WITH THIS EVIL"
+	.asciz	<3>"  AND MAY THE FORCE BE"
+	.asciz	<3>"  WITH YOU?"
+	.asciz	<3>"  YOUR TASK IS TO SCORE"
+	.asciz	<3>"  25 POINTS TO WIN?"
 	.byte	-1
 
 MsgCtrl:
-	.asciz	<3>"CONTROLS"
+	.asciz	<2>"CONTROLS"
 	.byte	0
-	.asciz	<2>"  ARROWS ; MOVE"
-	.asciz	<2>"   SPACE ; FIRE"
-	.asciz	<2>"   SHIFT ; STRAFE"
-	.asciz	<2>"     TAB ; MAP"
-	.asciz	<2>"    NONE ; PAUSE"
-	.asciz	<2>"     AP2 ; EXIT"
+	.asciz	<3>"  ARROWS ; MOVE"
+	.asciz	<3>"   SPACE ; FIRE"
+	.asciz	<3>"   SHIFT ; STRAFE"
+	.asciz	<3>"     TAB ; MAP"
+	.asciz	<3>"   ENTER ; PAUSE"
+	.asciz	<3>"     AP2 ; EXIT"
 	.byte	-1
 
 MsgAuth:
-	.asciz	<3>"AUTHORS"
+	.asciz	<2>"AUTHORS"
 	.byte	0
-	.asciz	<3>"ENGINE=GAME:"
-	.asciz	<2>"   APRAKSIN DMITRY \ADW2RU]"
-	.asciz	<3>"TITLE PICTURE:"
-	.asciz	<2>"   LASHIN URY \INOART STUDIO]"
-	.asciz	<3>"SUPPORT BK COMMUNITY:"
-	.asciz	<2>"   T<ME>BK0010[11M"
+	.asciz	<2>"ENGINE=GAME:"
+	.asciz	<3>"   APRAKSIN DMITRY \ADW2RU]"
+	.asciz	<2>"TITLE PICTURE:"
+	.asciz	<3>"   LASHIN URY \INOART STUDIO]"
+	.asciz	<2>"SUPPORT BK COMMUNITY:"
+	.asciz	<3>"   T<ME>BK0010[11M"
 	.byte	0
 	.asciz	<1>"2024 YEAR"
 	.byte	-1
