@@ -12,8 +12,9 @@
 	.asect
 	.=1000
 
+C_VADDR	 = 60000
 C_SCRWID = 64.
-C_MENUY = 150.
+C_MENUY  = 150.
 
 Start:	mov	#1000, SP			; just in case 
 	clr	@#177560			; clear keyboard status? 
@@ -37,7 +38,7 @@ Start:	mov	#1000, SP			; just in case
 MsgHello:
 	.asciz	"Neon port of 3D Arena BK 0010 game"
 	.even
-	
+
 ; //////////////////////////////////////////////////////////////////////////////
 ; // Utils 
 ; //////////////////////////////////////////////////////////////////////////////
@@ -118,7 +119,18 @@ VsyncProc:
 	cmp	VsyCount, #500.
 	blo	99$
 	clr	VsyCount
+	mov	R0, -(SP)
+	mov	R1, -(SP)
+	mov	R2, -(SP)
+	mov	R5, -(SP)
+	mov	FrameCount, R0
+	call	Digi3
+	call	PriSt8
 	clr	FrameCount
+	mov	(SP)+, R5
+	mov	(SP)+, R2
+	mov	(SP)+, R1
+	mov	(SP)+, R0
 99$:	call	SoundProc
 	rti
 
@@ -137,7 +149,10 @@ WindowInit:
 	mov	#AreaConfig, @#177530		; create screen buffer (so called "area")
 	nop
 	mov	AreaConfig+2, @#AreaId		; put a screen buffer id to the window description
-	mov	#ViewConfig, @#177530		; create window (so called "view")
+	mov	AreaConfig+2, @#AreaId2
+	mov	#ViewConfig, @#177530		; create window (so called "view")	
+	nop
+	mov	#ViewConfig2, @#177530
 	nop
 	return
 
@@ -145,10 +160,7 @@ WindowInit:
 WindowFree:
 	; free window and palette
 	mov	#2, AreaConfig			; command "free area"
-	mov	#AreaConfig, @#177530		; free area and its view
-	nop
-	mov	#21, PaletteConfig		; command "free palette"
-	mov	#PaletteConfig, @#177530	; free palette
+	mov	#AreaConfig, @#177530		; free area and its view(s)
 	nop
 	return
 
@@ -166,7 +178,7 @@ PaletteBuf:	; palette words G5 G4 G3ЃR4 R3 R2ЃB4 B3Ѓ - ЃG2 G1 G0ЃR1 R0ЃB2 
 ; screen buffer (so called "area") description
 AreaConfig:	.word	46			; command "create area"
 		.word	VSCR			; address of screen buffer or area id
-		.word	256.			; rows count
+		.word	256.+12.		; rows count (+12. for fps window)
 		.word	64.			; bytes count in row
 AreaPalette:	.byte	1			; 4 colors
 		.byte	0			; palette 0
@@ -183,6 +195,14 @@ AreaId:		.word	1			; area id
 		.word	20.			; right position (column)
 		.byte	1,2			; scale x,y (0 = *4, 1 = *2, 2 = *1)
 
+ViewConfig2:	.word	4
+ViewId2:	.word	0
+AreaId2:	.word	1
+		.word	256.
+		.word	0
+		.word	26., 26.+8.
+		.word	3., 4.
+		.byte	1,2
 
 ; //////////////////////////////////////////////////////////////////////////////
 ; // Printing
@@ -247,6 +267,67 @@ PrintText:
 ; BK-0010 ROM font data
 BkRomFont:
 @includebin romfnt.bin
+	.even
+
+; fps number
+MsgFp8:	.asciz	"00:0"
+	.even
+
+; 4x5 numbers (aligned by 8 bytes)
+SprNumbers45:
+	.byte	^B00111111, ^B00110011, ^B00110011, ^B00110011, ^B00111111, 0, 0, 0
+	.byte	^B00001100, ^B00001100, ^B00001100, ^B00001100, ^B00001100, 0, 0, 0
+	.byte	^B00111111, ^B00110000, ^B00111111, ^B00000011, ^B00111111, 0, 0, 0
+	.byte	^B00111111, ^B00110000, ^B00111100, ^B00110000, ^B00111111, 0, 0, 0
+	.byte	^B00110011, ^B00110011, ^B00111111, ^B00110000, ^B00110000, 0, 0, 0
+	.byte	^B00111111, ^B00000011, ^B00111111, ^B00110000, ^B00111111, 0, 0, 0
+	.byte	^B00111111, ^B00000011, ^B00111111, ^B00110011, ^B00111111, 0, 0, 0
+	.byte	^B00111111, ^B00110000, ^B00110000, ^B00110000, ^B00110000, 0, 0, 0
+	.byte	^B00111111, ^B00110011, ^B00111111, ^B00110011, ^B00111111, 0, 0, 0
+	.byte	^B00111111, ^B00110011, ^B00111111, ^B00110000, ^B00111111, 0, 0, 0 
+	.byte	^B00000000, ^B00000000, ^B00000000, ^B00000000, ^B00001100, 0, 0, 0
+	.even 
+
+; print string
+PriSt8:	mov	#MsgFp8, R0
+	mov	#260.*C_SCRWID+1.+C_VADDR, R5
+	mov	#C_SCRWID, R2		; vaddr addition
+10$:	movb	(R0)+, R1		; get text byte
+	beq	99$			; zero - exit
+	sub	#'0, R1			; relative to '0'
+	asl	R1			; *8 bytes (character font size)
+	asl	R1
+	asl	R1
+	add	#SprNumbers45, R1	; R1 = font data
+	.rept	5.			; out character
+	movb	(R1)+, (R5)
+	add	R2, R5
+	.endr
+	sub	#5.*C_SCRWID-1, R5	; advance vaddr
+	br	10$
+99$:	return 
+
+; put 2.1 digits string to MsgFp8, R0 - number
+Digi3:	mov	#MsgFp8, R5
+	cmp	R0, #999.
+	blos	10$
+	mov	#999., R0
+10$:	mov	#100., R2
+	call	100$
+	mov	#10., R2
+	call	100$
+	inc	R5
+	add	#'0, R0
+	movb	R0, (R5)
+	return
+100$:	mov	#'0, R1
+110$:	sub	R2, R0
+	bcs	120$
+	inc	R1
+	br	110$
+120$:	add	R2, R0
+	movb	R1, (R5)+
+	return
 
 
 ; //////////////////////////////////////////////////////////////////////////////
