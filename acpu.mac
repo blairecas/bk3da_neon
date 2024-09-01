@@ -18,6 +18,8 @@ C_MENUY = 150.
 Start:	mov	#1000, SP			; just in case 
 	clr	@#177560			; clear keyboard status? 
 
+	.print	#MsgHello
+
 	; starting
 	call	GetAllMem
 	call	WindowInit
@@ -26,13 +28,16 @@ Start:	mov	#1000, SP			; just in case
 	call	GStart
 
 	; exiting
-	call	WindowFree
-	call	KeyboardFree
 	call	VSyncFree
+	call	KeyboardFree
+	call	WindowFree
 	clr	R0
 	.exit
 
-
+MsgHello:
+	.asciz	"Neon port of 3D Arena BK 0010 game"
+	.even
+	
 ; //////////////////////////////////////////////////////////////////////////////
 ; // Utils 
 ; //////////////////////////////////////////////////////////////////////////////
@@ -88,6 +93,7 @@ GetAllMem:
 BkwScrn:	.word	0
 Bkw100:		.word	0
 VsyCount:	.word	0
+FrameCount:	.word	0
 
 VsyncInit:
 	mfhlt	#V.Scrn
@@ -106,8 +112,14 @@ VSyncFree:
 	return
 
 
+; (!) save/restore registers, it's not a separate process
 VsyncProc:
 	inc	VsyCount
+	cmp	VsyCount, #500.
+	blo	99$
+	clr	VsyCount
+	clr	FrameCount
+99$:	call	SoundProc
 	rti
 
 
@@ -265,23 +277,6 @@ KeyEnter:	.word	0, 12., ^B00001000
 KeysEnd:
 
 
-ClearKeys:
-	mov	#KeysBegin, R0
-10$:	clr	(R0)+
-	cmp	(R0)+, (R0)+
-	cmp	R0, #KeysEnd
-	blo	10$
-	return
-
-
-WaitKeypress:
-	clr	KeyCurrent
-	tst	KeyCurrent
-	beq	.-4
-	clr	KeyCurrent
-	return
-
-
 KeyboardInit:
 	; save some keyboard-related values? and set priority?
 	mfhlt	#V.Kbd
@@ -320,6 +315,23 @@ KeyboardFree:
 	return
 
 
+ClearKeys:
+	mov	#KeysBegin, R0
+10$:	clr	(R0)+
+	cmp	(R0)+, (R0)+
+	cmp	R0, #KeysEnd
+	blo	10$
+	return
+
+
+WaitKeypress:
+	clr	KeyCurrent
+	tst	KeyCurrent
+	beq	.-4
+	clr	KeyCurrent
+	return
+
+
 KeyboardProc:
 	setpri	#50000				; set priority of process
 	unpvec	#v.kbd				; unprotect keyboard vector
@@ -350,6 +362,100 @@ KeyboardProc:
 	br	10$
 
 
+; //////////////////////////////////////////////////////////////////////////////
+; // Sound
+; //////////////////////////////////////////////////////////////////////////////
+
+;SndProcDsc:	.word	0
+;SndProcNum:	.word	0
+
+;SoundInit:
+;	mtps	#200
+;      	newromp	#SoundProc
+;	mov	R0, SndProcDsc
+;	mov	R0, R5
+;	call	GetProcessNum
+;	mov	R1, SndProcNum 
+;	mtps	#0
+;	return
+
+
+;SoundFree:
+;	mtps	#200
+;	clr	R0
+;	mthlt	#157700
+;	kilproc	SndProcNum
+;	mtps	#0
+;	return
+
+
+; sound process
+SoundProc:
+	mov	R0, -(SP)
+	mov	R1, -(SP)
+	mov	R3, -(SP)
+	mov	R5, -(SP)
+	;
+	mov	SndBm, R5
+	beq	99$
+	mov	#SoundTable, R0
+	mov	#1, R1
+	mov	#4, R3
+20$:	bit	R1, R5
+	bne	40$
+	asl	R1
+	tst	(R0)+
+	sob	R3, 20$
+30$:	clr	SndBm
+99$:	mov	(SP)+, R5
+	mov	(SP)+, R3
+	mov	(SP)+, R1
+	mov	(SP)+, R0
+	return
+40$:	mov	(R0), R0
+50$:	mov	(R0)+, R3
+	beq	30$
+	asr	 R3
+	movb	#377, @#161032
+	sob	R3, .
+	mov	(R0)+, R3
+	beq	30$
+	asr	R3
+	movb	#000, @#161032
+	sob	R3, .
+	br	50$
+
+
+; 1-take ammo, 2-fire, 4-hit, 8-menu tick
+SoundTable:
+	.word	       Sound001, Sound002, Sound004, Sound008
+
+.radix 10
+
+; bit 1 - take ammo - top priority
+Sound001:
+	.word	216, 184, 192, 184, 184, 192, 184, 192, 176, 200, 176, 208
+	.word	168, 216, 160, 224
+	.word	0
+
+; bit 2 - fire - priority #2
+Sound002:
+	.word	194, 79, 37, 26, 75, 25, 210
+	.word	41, 37, 76, 26, 52
+	.word	0
+
+; bit 3 - hit something - priority #3
+Sound004:
+	.word	81, 65, 87, 65, 146, 59, 66, 61, 102, 61, 88, 66, 86, 67, 100, 40
+	.word	488, 2352, 1432, 1096, 544, 520, 528, 496, 1160, 520, 536, 363
+	.word	0
+
+; bit 8 - menu ticks - least priority
+Sound008:
+	.word	150, 20, 140, 30, 130, 40
+	.word	0
+
+.radix	8
 
 ; //////////////////////////////////////////////////////////////////////////////
 ; // Dmitry's code is here
@@ -360,7 +466,6 @@ KeyboardProc:
 @include menu0.mac
 @include mn0.mac
 @include tabs0.mac
-@include tit0.mac
 @include util0.mac
 @include wl0.mac
 

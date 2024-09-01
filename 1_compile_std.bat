@@ -2,6 +2,10 @@
 
 php -f ./scripts/convert_font.php
 if %ERRORLEVEL% NEQ 0 ( exit /b )
+php -f ./scripts/convert_title.php
+if %ERRORLEVEL% NEQ 0 ( exit /b )
+php -f ./scripts/convert_tiles.php
+if %ERRORLEVEL% NEQ 0 ( exit /b )
 
 php -f ../scripts/preprocess.php acpu.mac
 if %ERRORLEVEL% NEQ 0 ( exit /b )

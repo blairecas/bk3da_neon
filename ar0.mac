@@ -48,8 +48,7 @@
 	HALFAMMO=30.	; amount of ammo after that ammo is not taking
 
 	;
-GSTART:	CALL HWINIT
-	CLRB SHMAP
+GSTART:	CLRB SHMAP
 	CLR AMAP
 	JMP GOTIT
 	;
@@ -125,14 +124,15 @@ RULES:	.WORD 177772	; 1,4
 	.WORD 177763	; 4,8
 	;
 
-; STARTUP INIT
-HWINIT:
-	return
 
 ;
 ; sounds
 ; 
-; sound bitmap: (bits) 1-take ammo, 2-???, 4-hit, 8-fire
+; sound bitmap: (bits) 0-menu tick, 1-take ammo, 2-???, 4-hit, 8-fire
+	SND_AMMO = 01.
+	SND_FIRE = 02.
+	SND_HIT  = 04.
+	SND_MENU = 08.	
 SNDBM:	.word	0
 ;
 
@@ -202,7 +202,8 @@ GO:	CALL PREP0	; MAKE UNROLLED	CODE
 	CALL DRST2	; RESTART LEVEL
 	;
 	; MAIN LOOP
-ML:	CALL MNMOV	; MONSTERS MOVE
+ML:	inc	FrameCount
+	CALL MNMOV	; MONSTERS MOVE
 	CALL MNDRW	; DRAW MONSTERS	ON MAP
 	CALL RENDR	; RENDER
 	CALL MNPRC	; PROCESS MONSTERS

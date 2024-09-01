@@ -1,22 +1,43 @@
-	;
-GOTIT:	CALL CLSCR
+TitlePicture:
+@includebin _title_zx0.bin
+	.even
 
+@include acpu_tiles.mac
+
+
+; draws number tile, R0 - #, R5 - vaddr
+DrawTile:
+	mul	#64., R0
+	add	#TilesCpuData, R1		; R1 - addr of 16x16 tile
+	mov	#16., R3
+	mov	#C_SCRWID-3, R2
+10$:	movb	(R1)+, (R5)+
+	movb	(R1)+, (R5)+
+	movb	(R1)+, (R5)+
+	movb	(R1)+, (R5)
+	add	R2, R5
+	sob	R3, 10$
+	return
+
+
+; menu
+GotIt:	call	ClScr
 	; unpack picture
-	MOV #TITDAT,R0
-	MOV #VSCR+3400,R1
-	CALL UNPK
-
-	; draw menu
-	mov	#C_MENUY*C_SCRWID+18.+VSCR, R5
-	mov	#MsgMenu, R0
-	call	PrintText
+	mov	#TitlePicture, R0
+	mov	#VSCR, R1
+	call	Unpack
+;	; draw menu
+;	mov	#C_MENUY*C_SCRWID+18.+VSCR, R5
+;	mov	#MsgMenu, R0
+;	call	PrintText
+	; draw arena number
 	call	PrintArenaNum
-
 	; clear keys
 	call	ClearKeys
-
 01$:	; keypress processing
 	call	WaitKeypress
+	bis	#SND_MENU, SndBm	; menu tick sound
+	;
 	tst	Key3			; 3 - info
 	beq	10$
 	clr	Key3
@@ -42,6 +63,7 @@ GOTIT:	CALL CLSCR
 	beq	01$
 	return
 
+
 ; info out
 OutInfo:
 	call	ClScr
@@ -62,26 +84,72 @@ OutInfo:
 	jmp	GotIt
 
 
-; prints arena number in menu (from Amap)
 PrintArenaNum:
 	movb	Amap, R0
-	add	#'1, R0
-	movb	R0, MsgNumber+1
-	mov	#C_MENUY+14.*C_SCRWID+36.+VSCR, R5
-	mov	#MsgNumber, R0
-	call	PrintStr
+;	add	#'1, R0
+;	movb	R0, MsgNumber+1
+;	mov	#C_MENUY+14.*C_SCRWID+36.+VSCR, R5
+;	mov	#MsgNumber, R0
+;	call	PrintStr
+	mov	#C_MENUY+16.*C_SCRWID+41.+VSCR, R5
+	call	DrawTile
 	return
 
 
-MsgNumber:
-	.asciz	<2>"1"
+; ZX0 v2.2 unpacker
+; original ZX0 encoder/decoder (c) Einar Saukas & Urusergi
+; PDP11 version by reddie, 02-may-2024 (upd)
+; R0 = source packed zx0, R1 = dest addr
+Unpack:	clr	R2
+	movb	#200, R3
+	sxt	R5
+10$:	call	50$
+	movb	(R0)+, (R1)+
+	sob	R2, .-2
+	aslb	R3
+	bcs	30$
+	call	50$
+20$:	mov	R1, R4
+	add	R5, R4
+	movb	(R4)+, (R1)+
+	sob	R2, .-2
+	aslb	R3
+	bcc	10$
+30$:	mov	#-2, R2
+	call	60$
+	incb	R2
+	bne	.+4
+40$:	return
+	swab	R2
+	mov	R2, R5
+	clrb	R5
+	bisb	(R0)+, R5
+	asr	R5
+	mov	#1, R2
+	bcs	.+6
+	call	80$
+	inc	R2
+	br	20$
+50$:	incb	R2
+60$:	aslb	R3
+	bne	70$
+	movb	(R0)+, R3
+	rolb	R3
+70$:	bcs	40$
+80$:	aslb	R3
+	rol	R2
+	br	60$ 
 
-MsgMenu:
-	.asciz	<2>"1"<1>": "<3>"START GAME"
-	.asciz	<2>"2"<1>": "<3>"ARENA "
-	.asciz	<2>"3"<1>": "<3>"INFORMATION"
-	.asciz	<1>"0"<1>": "<1>"EXIT TO DOS"
-	.byte	-1
+
+;MsgNumber:
+;	.asciz	<2>"1"
+
+;MsgMenu:
+;	.asciz	<2>"1"<1>": "<3>"START GAME"
+;	.asciz	<2>"2"<1>": "<3>"ARENA "
+;	.asciz	<2>"3"<1>": "<3>"INFORMATION"
+;	.asciz	<1>"0"<1>": "<1>"EXIT TO DOS"
+;	.byte	-1
 
 MsgInfo:
 	.asciz	<2>"LEGEND"
@@ -124,11 +192,10 @@ MsgAuth:
 	.even
 
 
-	; NRV2d	(UCL) FOR BK/PDP
-	; INPUT:
-	; R0 - SOURCE
-	; R1 - DESTINATION
-
+; NRV2d	(UCL) FOR BK/PDP
+; INPUT:
+; R0 - SOURCE
+; R1 - DESTINATION
 UNPK:	MOV #-1,R4
 	XOR R2,R2
 	BR DCL
@@ -202,5 +269,5 @@ NXMV:	MOVB (R3)+,(R1)+
 	SOB R5,NXMV
 	BR DCL
 
-BRK:	RET
-	;
+BRK:	RET 
+
