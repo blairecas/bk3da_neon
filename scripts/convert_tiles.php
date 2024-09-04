@@ -5,7 +5,7 @@
     $width = imagesx($img);
     $height = imagesy($img);
     $tiles_dx = intval($width / 16);
-    $tiles_dy = intval($height / 16);
+    $tiles_dy = intval($height / 17);
     
     // tiles array
     $tilesArray = Array();
@@ -20,13 +20,13 @@
         {
 	        $tile = Array();
             $have_data = false;
-	        for ($y=0; $y<16; $y++)
+	        for ($y=0; $y<17; $y++)
             {
                 // first word
                 $res = 0; 
 		        for ($x=0; $x<8; $x++)
                 {
-                    $py = $tiley*16 + $y;
+                    $py = $tiley*17 + $y;
 		            $px = $tilex*16 + $x;
 		            $res = ($res >> 2) & 0xFFFF;
                     $rgb_index = imagecolorat($img, $px, $py);
@@ -47,7 +47,7 @@
                 $res = 0; 
 		        for ($x=8; $x<16; $x++)
                 {
-                    $py = $tiley*16 + $y;
+                    $py = $tiley*17 + $y;
 		            $px = $tilex*16 + $x;
 		            $res = ($res >> 2) & 0xFFFF;
                     $rgb_index = imagecolorat($img, $px, $py);
@@ -81,7 +81,7 @@
     {
         $tile = $tilesArray[$t];
         $n = 0;
-	    for ($i=0; $i<32; $i++)
+	    for ($i=0; $i<34; $i++)
 	    {
 	        if ($n==0) fputs($f, "\t.word\t");
 	        $ww = $tile[$i];

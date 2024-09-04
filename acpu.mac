@@ -14,7 +14,7 @@
 
 C_VADDR	 = 60000
 C_SCRWID = 64.
-C_MENUY  = 150.
+C_MENUY  = 153.
 
 Start:	mov	#1000, SP			; just in case 
 	clr	@#177560			; clear keyboard status? 

@@ -7,9 +7,9 @@ TitlePicture:
 
 ; draws number tile, R0 - #, R5 - vaddr
 DrawTile:
-	mul	#64., R0
-	add	#TilesCpuData, R1		; R1 - addr of 16x16 tile
-	mov	#16., R3
+	mul	#68., R0
+	add	#TilesCpuData, R1		; R1 - addr of 16x17 tile
+	mov	#17., R3
 	mov	#C_SCRWID-3, R2
 10$:	movb	(R1)+, (R5)+
 	movb	(R1)+, (R5)+
@@ -26,10 +26,6 @@ GotIt:	call	ClScr
 	mov	#TitlePicture, R0
 	mov	#VSCR, R1
 	call	Unpack
-;	; draw menu
-;	mov	#C_MENUY*C_SCRWID+18.+VSCR, R5
-;	mov	#MsgMenu, R0
-;	call	PrintText
 	; draw arena number
 	call	PrintArenaNum
 	; clear keys
@@ -86,12 +82,7 @@ OutInfo:
 
 PrintArenaNum:
 	movb	Amap, R0
-;	add	#'1, R0
-;	movb	R0, MsgNumber+1
-;	mov	#C_MENUY+14.*C_SCRWID+36.+VSCR, R5
-;	mov	#MsgNumber, R0
-;	call	PrintStr
-	mov	#C_MENUY+16.*C_SCRWID+41.+VSCR, R5
+	mov	#C_MENUY+16.*C_SCRWID+34.+VSCR, R5
 	call	DrawTile
 	return
 
@@ -140,16 +131,6 @@ Unpack:	clr	R2
 	rol	R2
 	br	60$ 
 
-
-;MsgNumber:
-;	.asciz	<2>"1"
-
-;MsgMenu:
-;	.asciz	<2>"1"<1>": "<3>"START GAME"
-;	.asciz	<2>"2"<1>": "<3>"ARENA "
-;	.asciz	<2>"3"<1>": "<3>"INFORMATION"
-;	.asciz	<1>"0"<1>": "<1>"EXIT TO DOS"
-;	.byte	-1
 
 MsgInfo:
 	.asciz	<2>"LEGEND"
