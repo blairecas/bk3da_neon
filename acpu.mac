@@ -150,9 +150,9 @@ WindowInit:
 	nop
 	mov	AreaConfig+2, @#AreaId		; put a screen buffer id to the window description
 	mov	AreaConfig+2, @#AreaId2
-	mov	#ViewConfig, @#177530		; create window (so called "view")	
-	nop
 	mov	#ViewConfig2, @#177530
+	nop
+	mov	#ViewConfig, @#177530		; create window (so called "view")	
 	nop
 	return
 
@@ -195,6 +195,7 @@ AreaId:		.word	1			; area id
 		.word	20.			; right position (column)
 		.byte	1,2			; scale x,y (0 = *4, 1 = *2, 2 = *1)
 
+; small window for fps
 ViewConfig2:	.word	4
 ViewId2:	.word	0
 AreaId2:	.word	1
