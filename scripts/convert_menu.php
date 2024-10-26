@@ -1,8 +1,8 @@
 <?php
-    $fname_png = "./graphics/Title.png";
 
-    $img = imagecreatefrompng($fname_png);
-    $arr = Array();
+function convertImage($name)
+{
+    global $img, $arr;
 
     // scan image and create array
     for ($y=0; $y<256; $y++)
@@ -31,30 +31,23 @@
         }
     }
 
-    echo "Title: $fname_png\n";
-
-    $fname = dirname(__FILE__) . "/../_title.bin";
-    $fname_zx0 = dirname(__FILE__) . "/../_title_zx0.bin";
-
+    $fname = dirname(__FILE__) . "/../_".$name.".bin";
+    $fname_zx0 = dirname(__FILE__) . "/../_".$name."_zx0.bin";
     // write binary temp file
     $f = fopen($fname, "w");
     for ($i=0; $i<count($arr); $i++) fwrite($f, chr($arr[$i]), 1);
     fclose($f);
-
     // compress it and remove temp file
     exec(dirname(__FILE__)."/../../scripts/zx0 -f -q ".$fname." ".$fname_zx0);
     unlink($fname);
+}
 
-    // write array of bytes    
-    // echo "Writing title picture...\n";
-    // $f = fopen ("acpu_title.mac", "w");
-    // fputs($f, "TitleData:\n");
-    // for ($i=0, $n=0; $i<count($arr); $i++)
-    // {
-    //     if ($n==0) fputs($f, "\t.byte\t");
-    //     $bb = $arr[$i];
-    //     fputs($f, decoct($ww));
-    //     $n++; if ($n<8) fputs($f, ", "); else { $n=0; fputs($f, "\n"); }
-    // }
-    // fputs($f, "\n");
-    // fclose($f);
+    $fname_png = "./graphics/Menu.png";
+    $img = imagecreatefrompng($fname_png);
+    $arr = Array();
+    convertImage("menu");
+    
+    $fname_png = "./graphics/Loading.png";
+    $img = imagecreatefrompng($fname_png);
+    $arr = Array();
+    convertImage("loading");

@@ -14,7 +14,7 @@
 
 C_VADDR	 = 60000
 C_SCRWID = 64.
-C_MENUY  = 153.
+C_MENUY  = 157.
 
 Start:	mov	#1000, SP			; just in case 
 	clr	@#177560			; clear keyboard status? 
@@ -26,6 +26,7 @@ Start:	mov	#1000, SP			; just in case
 	call	WindowInit
 	call	KeyboardInit
 	call	VSyncInit
+	call	Loading
 	call	GStart
 
 	; exiting
@@ -448,28 +449,12 @@ KeyboardProc:
 ; // Sound
 ; //////////////////////////////////////////////////////////////////////////////
 
-;SndProcDsc:	.word	0
-;SndProcNum:	.word	0
+SndBm:	.word	0
 
-;SoundInit:
-;	mtps	#200
-;      	newromp	#SoundProc
-;	mov	R0, SndProcDsc
-;	mov	R0, R5
-;	call	GetProcessNum
-;	mov	R1, SndProcNum 
-;	mtps	#0
-;	return
-
-
-;SoundFree:
-;	mtps	#200
-;	clr	R0
-;	mthlt	#157700
-;	kilproc	SndProcNum
-;	mtps	#0
-;	return
-
+SND_AMMO = 01.
+SND_FIRE = 02.
+SND_HIT  = 04.
+SND_MENU = 08.
 
 ; sound process
 SoundProc:
@@ -477,7 +462,6 @@ SoundProc:
 	mov	R1, -(SP)
 	mov	R3, -(SP)
 	mov	R5, -(SP)
-	;
 	mov	SndBm, R5
 	beq	99$
 	mov	#SoundTable, R0
@@ -540,18 +524,47 @@ Sound008:
 .radix	8
 
 ; //////////////////////////////////////////////////////////////////////////////
+; // Loading screen
+; //////////////////////////////////////////////////////////////////////////////
+
+Loading:
+	mov	#LoadingPicture, R0
+	mov	#VSCR, R1
+	call	Unpack
+	call	WaitKeypress
+	; remove not needed picture data
+	mov	#LoadingPicture, R0
+	mov	#CpuEnd-LoadingPicture, R3
+	clrb	(R0)+
+	sob	R3, .-2
+	return
+
+
+; //////////////////////////////////////////////////////////////////////////////
 ; // Dmitry's code is here
 ; //////////////////////////////////////////////////////////////////////////////
 	
-@include ar0.mac
-@include lg0.mac
-@include menu0.mac
-@include mn0.mac
-@include tabs0.mac
-@include util0.mac
-@include wl0.mac
+	@include s2.mac
+	@include ar2.mac
+	@include lg2.mac
+	@include menu2.mac
+	@include mn2.mac
+	@include tabs2.mac
+	@include util2.mac
+	@include wl2.mac
+	.even
 
-.even
+
+; //////////////////////////////////////////////////////////////////////////////
+; // Tiles, pictures 
+; //////////////////////////////////////////////////////////////////////////////
+
+	@include acpu_tiles.mac
+MenuPicture:	
+	@includebin _menu_zx0.bin
+LoadingPicture:
+	@includebin _loading_zx0.bin
+	.even
+
 CpuEnd:
-
 	.end	Start
