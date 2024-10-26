@@ -1,16 +1,26 @@
+UseTimerLogic:	.word	0
+
 TCC:	.WORD 1
 	;
 	; START	TIMER
 STRTIM:	MOV TCC,TC
 	CLRB TKCNTR
 	CLRB PRCNTR
+	inc	UseTimerLogic
 	RET
 	;
 	; STOP TIMER
-STPTIM:	RET
+STPTIM:	clr	UseTimerLogic
+	RET
+
 	;
 	; TIMER	THREAD
-N100:	DEC (PC)+
+N100:	;
+	tst	UseTimerLogic
+	bne	10$
+	return
+10$:	;
+	DEC (PC)+
 TC:	.WORD 0
 	BEQ 1$
 	RET

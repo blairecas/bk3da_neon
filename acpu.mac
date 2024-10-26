@@ -116,6 +116,9 @@ VSyncFree:
 
 ; (!) save/restore registers, it's not a separate process
 VsyncProc:
+	; game controls from timer
+	call	N100
+	;
 	inc	VsyCount
 	cmp	VsyCount, #500.
 	blo	99$

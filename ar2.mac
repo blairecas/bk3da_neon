@@ -105,6 +105,8 @@ JOY:
 	beq	10$
 	tst	KeyShift
 	bne	08$
+	bit	#1, VsyCount		; slower rotation 
+	beq	10$
 	call	DLFT
 	br	10$
 08$:	call	DSL
@@ -112,6 +114,8 @@ JOY:
 	beq	20$
 	tst	KeyShift
 	bne	18$
+	bit	#1, VsyCount		; slower rotation 
+	beq	20$
 	call	DRGHT
 	br	20$
 18$:	call	DSR
@@ -185,7 +189,6 @@ ML:	;
 ;	CLR SNDBM	; CLEAR	SOUNDS BITMAP
 	;
 ML2:	;IOT		; WILL BE NOP FOR NON BK0010
-	call	N100
 	;
 	CALL DOMAP	; PROCESS MAP
 	CALL DORST	; PROCESS RESTART
