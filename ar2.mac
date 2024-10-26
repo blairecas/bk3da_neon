@@ -100,7 +100,10 @@ SCFLG:	MOVB TKCNTR,R0
 
 ;
 ; CONTROLS PROCESSING
-JOY:
+JOY:	; no moving on pause
+	cmp	#GSPAUS, GState
+	beq	50$
+	; left / strafe left
 	tst	KeyLeft
 	beq	10$
 	tst	KeyShift
@@ -110,7 +113,8 @@ JOY:
 	call	DLFT
 	br	10$
 08$:	call	DSL
-10$:	tst	KeyRight
+10$:	; right / strafe right
+	tst	KeyRight
 	beq	20$
 	tst	KeyShift
 	bne	18$
@@ -119,22 +123,28 @@ JOY:
 	call	DRGHT
 	br	20$
 18$:	call	DSR
-20$:	tst	KeyUp
+20$:	; forward
+	tst	KeyUp
 	beq	30$
 	call	DUP
-30$:	tst	KeyDown
+30$:	; backward
+	tst	KeyDown
 	beq	40$
 	call	DDWN
-40$:	tst	KeySpace
+40$:	; fire
+	tst	KeySpace
 	beq	50$
 	call	DSPC
-50$:	tst	KeyTab
+50$:	; show map
+	tst	KeyTab
 	beq	60$
 	call	DTAB
-60$: 	tst	KeyAp2
+60$: 	; exit to menu
+	tst	KeyAp2
 	beq	70$
 	mov	#GSEXIT, GState
-70$:	tst	KeyEnter
+70$:	; pause
+	tst	KeyEnter
 	beq	80$
 	clr	KeyEnter
 	call	DPAUS
