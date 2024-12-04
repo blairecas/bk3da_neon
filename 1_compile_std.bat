@@ -14,8 +14,8 @@ if %ERRORLEVEL% NEQ 0 ( exit /b )
 php -f ../scripts/lst2bin.php _acpu.lst ./release/bk3da.sav sav
 if %ERRORLEVEL% NEQ 0 ( exit /b )
 
-..\scripts\rt11dsk.exe d neon.dsk .\release\bk3da.sav >NUL
-..\scripts\rt11dsk.exe a neon.dsk .\release\bk3da.sav >NUL
+..\scripts\rt11dsk d .\release\bk3da.dsk bk3da.sav >NUL
+..\scripts\rt11dsk a .\release\bk3da.dsk .\release\bk3da.sav >NUL
 
 del _acpu.mac
 del _acpu.lst
